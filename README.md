@@ -1,48 +1,50 @@
-# 🎟️ Ticketing System -- Backend + Frontend
+# 🎟️ Ticketing System — Simple Spring Boot + HTML UI
 
-A full-stack ticket reservation system built with **Spring Boot**,
-**React**, and **PostgreSQL**.\
-It supports event creation, section management, seat listing, holding
-seats, confirming reservations, and real-time UI updates.
+A lightweight ticket reservation system built using **Spring Boot**, **static HTML/JS**, and **in-memory or JPA-based persistence**.
+The project supports event creation, section creation, seat listing, holding seats with pessimistic locking, and confirming reservations.
+
 
 ## 🚀 Features
 
 ### **Backend (Spring Boot)**
 
--   Create Events\
--   Create Event Sections\
--   Auto-generate Seats for each Section\
--   Fetch seats by section\
--   Hold seats (Pessimistic Locking)\
--   Confirm reservations\
--   Prevent double-booking\
--   PostgreSQL persistence
+* Create Events
+* Create Event Sections
+* Auto-generate seats for each section
+* Fetch seats by section
+* Hold seats (**Pessimistic Locking**)
+* Confirm reservations
+* Prevent double-booking
+* Works with any DB supported by Spring Data JPA
+  *(H2 / PostgreSQL / MySQL — based on your config)*
 
-### **Frontend (React)**
+### **Frontend (Simple HTML + Vanilla JS)**
 
--   Event form\
--   Section creation\
--   Fetch and show seats\
--   Seat selection\
--   Hold seats\
--   Confirm reservation\
--   Fully dynamic UI
+* Event creation form
+* Section creation form
+* Seat listing UI
+* Clickable seat selection grid
+* Combined **Hold + Confirm reservation** workflow
+* No React / no build tools — pure HTML + JS
+* Simple to embed anywhere
+
 
 ## 🏗️ Tech Stack
 
 ### **Backend**
 
--   Java 17\
--   Spring Boot\
--   Spring Data JPA\
--   PostgreSQL\
--   Lombok
+* Java **21**
+* Spring Boot
+* Spring Data JPA
+* Hibernate (Pessimistic Locking)
+* Lombok
 
 ### **Frontend**
 
--   React + Vite\
--   Axios\
--   Tailwind (optional)
+* Pure **HTML**
+* Vanilla **JavaScript** (Fetch API)
+* Basic **CSS**
+* No React, no bundlers — lightweight and clean
 
 ## 📦 Project Structure
 
