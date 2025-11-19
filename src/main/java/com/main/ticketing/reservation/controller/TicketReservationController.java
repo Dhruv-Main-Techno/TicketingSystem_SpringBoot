@@ -15,6 +15,7 @@ import javax.validation.Valid;
 @RequiredArgsConstructor
 public class TicketReservationController {
 
+
     private final TicketReservationService reservationService;
 
     @PostMapping("/hold")
@@ -28,4 +29,17 @@ public class TicketReservationController {
         reservationService.confirmReservation(id);
         return ResponseEntity.ok(new ReservationResponse(id, "CONFIRMED", "Reservation confirmed"));
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ReservationResponse> getReservation(@PathVariable Long id) {
+        TicketReservation res = reservationService.getReservation(id);
+        return ResponseEntity.ok(new ReservationResponse(
+                res.getId(),
+                res.getStatus().name(),
+                "Status: " + res.getStatus()
+        ));
+    }
+
+
+
 }

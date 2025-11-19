@@ -3,12 +3,54 @@
 <head>
     <title>Ticketing UI</title>
     <meta charset="UTF-8"/>
+
     <style>
         body { font-family: Arial; padding: 20px; }
-        h2 { margin-top: 40px; }
-        input, button, select { padding: 8px; margin: 5px; }
-        .box { border: 1px solid #ccc; padding: 15px; margin-top: 15px; }
-        pre { background: #f4f4f4; padding: 10px; }
+
+        .box {
+            border: 1px solid #bbb;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+
+        .seat-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 50px);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .seat {
+            padding: 8px;
+            background: #eaeaea;
+            border-radius: 5px;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+            font-weight: bold;
+        }
+
+        .seat.selected {
+            background: #00aaff;
+            color: white;
+        }
+
+        .seat.held {
+            background: #ff9800;
+            color: white;
+        }
+
+        .seat.sold {
+            background: #d32f2f;
+            color: white;
+        }
+
+        pre {
+            background: #f7f7f7;
+            padding: 10px;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
@@ -21,7 +63,6 @@
     <input type="text" id="eventName" placeholder="Event name">
     <input type="text" id="eventDesc" placeholder="Description">
     <button onclick="uiCreateEvent()">Create</button>
-
     <pre id="eventResult"></pre>
 </div>
 
@@ -33,47 +74,35 @@
     <input type="number" id="sectionSeats" placeholder="Total Seats">
     <input type="number" id="sectionPrice" placeholder="Price">
     <button onclick="uiCreateSection()">Create</button>
-
     <pre id="sectionResult"></pre>
 </div>
 
-<!-- List Seats -->
+<!-- Combined Seat Selection + Hold + Confirm -->
 <div class="box">
-    <h2>List Seats</h2>
-    <input type="number" id="seatSectionId" placeholder="Section ID">
-    <button onclick="uiListSeats()">List</button>
+    <h2>Select Seats & Reserve</h2>
 
-    <pre id="seatsResult"></pre>
-</div>
+    <input type="number" id="gridSectionId" placeholder="Section ID">
+    <input type="number" id="gridEventId" placeholder="Event ID">
+    <input type="text" id="gridUserId" placeholder="User ID">
+    <button onclick="loadSeatGrid()">Load Seats</button>
 
-<!-- Hold Seats -->
-<div class="box">
-    <h2>Hold Seats</h2>
-    <input type="number" id="holdEventId" placeholder="Event ID">
-    <input type="number" id="holdSectionId" placeholder="Section ID">
-    <input type="text" id="holdSeatLabels" placeholder="Comma separated seats: S1,S2">
-    <input type="text" id="holdUserId" placeholder="User ID">
-    <button onclick="uiHoldSeats()">Hold</button>
+    <div id="seatGrid" class="seat-grid"></div>
 
-    <pre id="holdResult"></pre>
-</div>
+    <button onclick="holdSelectedSeats()" style="margin-top:20px;">Hold Seats</button>
+    <button onclick="confirmHeldSeats()" style="margin-top:20px;">Confirm Reservation</button>
 
-<!-- Confirm Reservation -->
-<div class="box">
-    <h2>Confirm Reservation</h2>
-    <input type="number" id="confirmResId" placeholder="Reservation ID">
-    <button onclick="uiConfirmReservation()">Confirm</button>
-
-    <pre id="confirmResult"></pre>
+    <pre id="reserveResult"></pre>
 </div>
 
 <script>
-    async function api(url, method = "GET", body = null) {
-        const config = { method, headers: { "Content-Type": "application/json" }};
-        if (body) config.body = JSON.stringify(body);
+    let selectedSeats = [];
+    let currentReservationId = null;
 
+    async function api(url, method = "GET", body = null) {
+        const config = { method, headers: { "Content-Type": "application/json" } };
+        if (body) config.body = JSON.stringify(body);
         const res = await fetch(url, config);
-        return await res.json().catch(() => "No JSON response");
+        return await res.json().catch(() => ({message:"No JSON"}));
     }
 
     async function uiCreateEvent() {
@@ -94,28 +123,71 @@
         document.getElementById("sectionResult").textContent = JSON.stringify(data, null, 2);
     }
 
-    async function uiListSeats() {
-        let sectionId = document.getElementById("seatSectionId").value;
+    async function loadSeatGrid() {
+        const sectionId = document.getElementById("gridSectionId").value;
+
         let res = await fetch(`/api/events/sections/${sectionId}/seats`);
-        let data = await res.json();
-        document.getElementById("seatsResult").textContent = JSON.stringify(data, null, 2);
-    }
+        let seats = await res.json();
 
-    async function uiHoldSeats() {
-        let data = await api("/api/reservations/hold", "POST", {
-            eventId: Number(document.getElementById("holdEventId").value),
-            sectionId: Number(document.getElementById("holdSectionId").value),
-            seatLabels: document.getElementById("holdSeatLabels").value.split(","),
-            userId: document.getElementById("holdUserId").value
+        let grid = document.getElementById("seatGrid");
+        grid.innerHTML = "";
+        selectedSeats = [];
+
+        seats.forEach(seat => {
+            let div = document.createElement("div");
+            div.className = "seat";
+            div.textContent = seat.seatLabel; // FIXED: correct property
+            if (seat.status === "HELD") div.classList.add("held");
+            if (seat.status === "SOLD") div.classList.add("sold");
+
+            div.onclick = () => toggleSeat(div, seat.seatLabel);
+            grid.appendChild(div);
         });
-        document.getElementById("holdResult").textContent = JSON.stringify(data, null, 2);
     }
 
-    async function uiConfirmReservation() {
-        let resId = document.getElementById("confirmResId").value;
-        let res = await fetch(`/api/reservations/${resId}/confirm`, { method: "POST" });
-        let data = await res.json();
-        document.getElementById("confirmResult").textContent = JSON.stringify(data, null, 2);
+    function toggleSeat(div, label) {
+        if (div.classList.contains("held") || div.classList.contains("sold")) return;
+
+        div.classList.toggle("selected");
+
+        if (selectedSeats.includes(label)) {
+            selectedSeats = selectedSeats.filter(s => s !== label);
+        } else {
+            selectedSeats.push(label);
+        }
+    }
+
+    async function holdSelectedSeats() {
+        if (selectedSeats.length === 0) {
+            alert("Select at least one seat!");
+            return;
+        }
+
+        let body = {
+            eventId: Number(document.getElementById("gridEventId").value),
+            sectionId: Number(document.getElementById("gridSectionId").value),
+            seatLabels: selectedSeats,
+            userId: document.getElementById("gridUserId").value
+        };
+
+        let data = await api("/api/reservations/hold", "POST", body);
+
+        currentReservationId = data.id;
+        document.getElementById("reserveResult").textContent = JSON.stringify(data, null, 2);
+
+        await loadSeatGrid();
+    }
+
+    async function confirmHeldSeats() {
+        if (!currentReservationId) {
+            alert("Hold seats first!");
+            return;
+        }
+
+        let data = await api(`/api/reservations/${currentReservationId}/confirm`, "POST");
+        document.getElementById("reserveResult").textContent = JSON.stringify(data, null, 2);
+
+        await loadSeatGrid();
     }
 </script>
 

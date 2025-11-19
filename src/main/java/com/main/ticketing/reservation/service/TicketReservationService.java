@@ -104,4 +104,10 @@ public class TicketReservationService {
     public List<TicketReservation> findExpiredHolds(LocalDateTime before) {
         return reservationRepository.findByStatusAndExpiresAtBefore(ReservationStatus.HELD, before);
     }
+
+    public TicketReservation getReservation(Long id) {
+        return reservationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Reservation not found"));
+    }
+
 }
