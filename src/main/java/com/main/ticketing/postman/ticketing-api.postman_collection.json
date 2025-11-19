@@ -1,0 +1,54 @@
+{
+  "info": {
+    "name": "Ticketing API",
+    "_postman_id": "ticketing-collection-1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Event",
+      "request": {
+        "method": "POST",
+        "header": [{"key":"Content-Type","value":"application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\":\"My Concert\",\"description\":\"Live show\"}"
+        },
+        "url": {"raw":"http://localhost:8080/api/events","protocol":"http","host":["localhost"],"port":"8080","path":["api","events"]}
+      }
+    },
+    {
+      "name": "Create Section",
+      "request": {
+        "method": "POST",
+        "header": [{"key":"Content-Type","value":"application/json"}],
+        "body": {"mode":"raw","raw":"{\"eventId\":1,\"name\":\"VIP\",\"totalSeats\":20,\"price\":100.0}"},
+        "url": {"raw":"http://localhost:8080/api/events/sections","protocol":"http","host":["localhost"],"port":"8080","path":["api","events","sections"]}
+      }
+    },
+    {
+      "name": "List Seats",
+      "request": {
+        "method": "GET",
+        "url": {"raw":"http://localhost:8080/api/events/sections/1/seats","protocol":"http","host":["localhost"],"port":"8080","path":["api","events","sections","1","seats"]}
+      }
+    },
+    {
+      "name": "Hold Seats",
+      "request": {
+        "method": "POST",
+        "header": [{"key":"Content-Type","value":"application/json"}],
+        "body": {"mode":"raw","raw":"{\"eventId\":1,\"sectionId\":1,\"seatLabels\":[\"S1\",\"S2\"],\"userId\":\"postman-user\"}"},
+        "url": {"raw":"http://localhost:8080/api/reservations/hold","protocol":"http","host":["localhost"],"port":"8080","path":["api","reservations","hold"]}
+      }
+    },
+    {
+      "name": "Confirm Reservation",
+      "request": {
+        "method": "POST",
+        "header": [{"key":"Content-Type","value":"application/json"}],
+        "url": {"raw":"http://localhost:8080/api/reservations/1/confirm","protocol":"http","host":["localhost"],"port":"8080","path":["api","reservations","1","confirm"]}
+      }
+    }
+  ]
+}

@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>Ticketing — Simple UI</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .section { margin-bottom: 24px; }
+        .seat { display:inline-block; width:40px; height:28px; line-height:28px; text-align:center; margin:4px; border-radius:4px; cursor:pointer; }
+        .available { background:#e6ffed; border:1px solid #9be6b4 }
+        .held { background:#fff4cc; border:1px solid #f2d17a }
+        .booked { background:#ffd6d6; border:1px solid #ff9a9a }
+        .selected { box-shadow: 0 0 0 3px rgba(0,120,255,0.12) inset; }
+        button { padding:8px 12px; margin-top:8px; }
+    </style>
+</head>
+<body>
+<h2>Simple Ticketing UI</h2>
+
+<div class="section">
+    <h3>Create Event</h3>
+    <input id="eventName" placeholder="Event name"/>
+    <input id="eventDesc" placeholder="Description"/>
+    <button onclick="createEvent()">Create event</button>
+    <div id="createEventResult"></div>
+</div>
+
+<div class="section">
+    <h3>Create Section (auto seats)</h3>
+    <input id="sectionEventId" placeholder="Event ID"/>
+    <input id="sectionName" placeholder="Section name"/>
+    <input id="sectionSeats" placeholder="Total seats"/>
+    <input id="sectionPrice" placeholder="Price"/>
+    <button onclick="createSection()">Create section</button>
+    <div id="createSectionResult"></div>
+</div>
+
+<div class="section">
+    <h3>View Seats</h3>
+    <input id="viewSectionId" placeholder="Section ID"/>
+    <button onclick="loadSeats()">Load seats</button>
+    <div id="seatsContainer" style="margin-top:12px;"></div>
+    <button onclick="holdSelected()">Hold selected seats</button>
+    <div id="holdResult"></div>
+</div>
+
+<script>
+
+    const base = "http://localhost:8080";
+
+    let loadedSeats = [];
+    let selected = new Set();
+    let currentSectionId = null;
+    let currentEventId = null;
+
+    function createEvent(){
+        const name = document.getElementById('eventName').value;
+        const description = document.getElementById('eventDesc').value;
+
+        fetch(base + '/api/events', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({name, description})
+        })
+            .then(r=>r.json())
+            .then(j=>{
+                currentEventId = j.id;
+                document.getElementById('createEventResult').innerText = 'Event created with ID: ' + j.id;
+                document.getElementById('sectionEventId').value = j.id;
+            })
+            .catch(e=>alert(e));
+    }
+
+    function createSection(){
+        const eventId = Number(document.getElementById('sectionEventId').value);
+        const name = document.getElementById('sectionName').value;
+        const totalSeats = Number(document.getElementById('sectionSeats').value);
+        const price = Number(document.getElementById('sectionPrice').value);
+
+        fetch(base + '/api/events/sections', {
+            method:'POST', headers:{'content-type':'application/json'},
+            body: JSON.stringify({eventId, name, totalSeats, price})
+        })
+            .then(r=>r.json())
+            .then(j=>{
+                document.getElementById('createSectionResult').innerText = 'Section created with ID: ' + j.id;
+            })
+            .catch(e=>alert(e));
+    }
+
+    function loadSeats(){
+        const sectionId = Number(document.getElementById('viewSectionId').value);
+        currentSectionId = sectionId;
+
+        fetch(base + '/api/events/sections/' + sectionId + '/seats')
+            .then(r=>r.json())
+            .then(data=>{
+                loadedSeats = data;
+                renderSeats();
+            })
+            .catch(e=>alert('Could not load seats: ' + e));
+    }
+
+    function renderSeats(){
+        const container = document.getElementById('seatsContainer');
+        container.innerHTML = '';
+        selected.clear();
+
+        loadedSeats.forEach(s=>{
+            const seatDiv = document.createElement('div');
+            seatDiv.className = 'seat ' + s.status.toLowerCase();
+            seatDiv.innerText = s.seatLabel;
+
+            seatDiv.onclick = ()=>{
+                if (s.status !== "AVAILABLE") return;
+
+                if (selected.has(s.seatLabel)) {
+                    selected.delete(s.seatLabel);
+                    seatDiv.classList.remove('selected');
+                } else {
+                    selected.add(s.seatLabel);
+                    seatDiv.classList.add('selected');
+                }
+            };
+
+            container.appendChild(seatDiv);
+        });
+    }
+
+    function holdSelected(){
+        const seatLabels = Array.from(selected);
+
+        if (seatLabels.length === 0) {
+            alert("Select seats first");
+            return;
+        }
+
+        fetch(base + '/api/reservations/hold', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+                eventId: currentEventId,
+                sectionId: currentSectionId,
+                seatLabels,
+                userId: "ui-user"
+            })
+        })
+            .then(r=>r.json())
+            .then(j=>{
+                document.getElementById('holdResult').innerText =
+                    `Seats held! Reservation: ${j.reservationId}, Expires: ${j.message}`;
+                loadSeats();
+            })
+            .catch(e=>{
+                document.getElementById('holdResult').innerText = 'Error: ' + e.message;
+            });
+    }
+
+</script>
+</body>
+</html>

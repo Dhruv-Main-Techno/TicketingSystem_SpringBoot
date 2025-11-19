@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Ticketing UI</title>
+    <meta charset="UTF-8"/>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        h2 { margin-top: 40px; }
+        input, button, select { padding: 8px; margin: 5px; }
+        .box { border: 1px solid #ccc; padding: 15px; margin-top: 15px; }
+        pre { background: #f4f4f4; padding: 10px; }
+    </style>
+</head>
+<body>
+
+<h1>🎟️ Ticketing System UI</h1>
+
+<!-- Create Event -->
+<div class="box">
+    <h2>Create Event</h2>
+    <input type="text" id="eventName" placeholder="Event name">
+    <input type="text" id="eventDesc" placeholder="Description">
+    <button onclick="uiCreateEvent()">Create</button>
+
+    <pre id="eventResult"></pre>
+</div>
+
+<!-- Create Section -->
+<div class="box">
+    <h2>Create Section</h2>
+    <input type="number" id="sectionEventId" placeholder="Event ID">
+    <input type="text" id="sectionName" placeholder="Section Name">
+    <input type="number" id="sectionSeats" placeholder="Total Seats">
+    <input type="number" id="sectionPrice" placeholder="Price">
+    <button onclick="uiCreateSection()">Create</button>
+
+    <pre id="sectionResult"></pre>
+</div>
+
+<!-- List Seats -->
+<div class="box">
+    <h2>List Seats</h2>
+    <input type="number" id="seatSectionId" placeholder="Section ID">
+    <button onclick="uiListSeats()">List</button>
+
+    <pre id="seatsResult"></pre>
+</div>
+
+<!-- Hold Seats -->
+<div class="box">
+    <h2>Hold Seats</h2>
+    <input type="number" id="holdEventId" placeholder="Event ID">
+    <input type="number" id="holdSectionId" placeholder="Section ID">
+    <input type="text" id="holdSeatLabels" placeholder="Comma separated seats: S1,S2">
+    <input type="text" id="holdUserId" placeholder="User ID">
+    <button onclick="uiHoldSeats()">Hold</button>
+
+    <pre id="holdResult"></pre>
+</div>
+
+<!-- Confirm Reservation -->
+<div class="box">
+    <h2>Confirm Reservation</h2>
+    <input type="number" id="confirmResId" placeholder="Reservation ID">
+    <button onclick="uiConfirmReservation()">Confirm</button>
+
+    <pre id="confirmResult"></pre>
+</div>
+
+<script>
+    async function api(url, method = "GET", body = null) {
+        const config = { method, headers: { "Content-Type": "application/json" }};
+        if (body) config.body = JSON.stringify(body);
+
+        const res = await fetch(url, config);
+        return await res.json().catch(() => "No JSON response");
+    }
+
+    async function uiCreateEvent() {
+        let data = await api("/api/events", "POST", {
+            name: document.getElementById("eventName").value,
+            description: document.getElementById("eventDesc").value
+        });
+        document.getElementById("eventResult").textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function uiCreateSection() {
+        let data = await api("/api/events/sections", "POST", {
+            eventId: Number(document.getElementById("sectionEventId").value),
+            name: document.getElementById("sectionName").value,
+            totalSeats: Number(document.getElementById("sectionSeats").value),
+            price: Number(document.getElementById("sectionPrice").value)
+        });
+        document.getElementById("sectionResult").textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function uiListSeats() {
+        let sectionId = document.getElementById("seatSectionId").value;
+        let res = await fetch(`/api/events/sections/${sectionId}/seats`);
+        let data = await res.json();
+        document.getElementById("seatsResult").textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function uiHoldSeats() {
+        let data = await api("/api/reservations/hold", "POST", {
+            eventId: Number(document.getElementById("holdEventId").value),
+            sectionId: Number(document.getElementById("holdSectionId").value),
+            seatLabels: document.getElementById("holdSeatLabels").value.split(","),
+            userId: document.getElementById("holdUserId").value
+        });
+        document.getElementById("holdResult").textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function uiConfirmReservation() {
+        let resId = document.getElementById("confirmResId").value;
+        let res = await fetch(`/api/reservations/${resId}/confirm`, { method: "POST" });
+        let data = await res.json();
+        document.getElementById("confirmResult").textContent = JSON.stringify(data, null, 2);
+    }
+</script>
+
+</body>
+</html>
